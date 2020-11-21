@@ -1,6 +1,6 @@
 from flask import Flask
-from flask_socketio import SocketIO
 from flask_cors import CORS
+from flask_socketio import SocketIO
 
 socketio = SocketIO()
 

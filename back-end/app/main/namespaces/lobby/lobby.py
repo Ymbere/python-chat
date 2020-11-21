@@ -2,6 +2,7 @@ from flask_socketio import Namespace, emit
 from threading import Lock
 import pika
 import json
+from datetime import datetime
 
 from pika.spec import BasicProperties
 from ...rabbitmngr import RabbitManager
@@ -9,12 +10,13 @@ from ...message_parser import MessageParser
 from .... import socketio
 
 thread = None
+stop_thread = 1
 thread_lock = Lock()
 
 
 def background_rabbit_consumer():
     count = 0
-    while True:
+    while stop_thread:
         socketio.sleep(2)
         count += 1
         rabbit_connection = RabbitManager().init_connection()
@@ -41,7 +43,7 @@ def background_rabbit_consumer():
 
 
 @socketio.on('lobby_publisher', namespace='/lobby')
-def test_connect(message):
+def on_lobby_publisher(message):
     message = json.dumps(message)
 
     rabbit_connection = RabbitManager().init_connection()
@@ -55,11 +57,10 @@ def test_connect(message):
             delivery_mode=2
         )
     )
-    print('Received message: ', str(message))
 
 
 @socketio.on('connect', namespace="/lobby")
-def test_connect():
+def connected_lobby():
 
     rabbit_connection = RabbitManager().init_connection()
     channel = rabbit_connection.channel()
@@ -67,8 +68,13 @@ def test_connect():
     channel.basic_publish(
         exchange='',
         routing_key='/lobby',
-        body=json.dumps({"data": "A new user as connected",
-                         "time": "now", "owner": "system"})
+        body=json.dumps(
+            {
+                "data": "A new user as connected",
+                "time": datetime.now().strftime("%H:%M"),
+                "owner": "system"
+            }
+        )
     )
     rabbit_connection.close()
 
